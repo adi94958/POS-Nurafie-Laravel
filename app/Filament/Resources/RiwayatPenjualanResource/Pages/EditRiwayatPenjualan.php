@@ -60,7 +60,7 @@ class EditRiwayatPenjualan extends EditRecord
             }
 
             $record->update([
-                'id_pelanggan' => $data['id_pelanggan'],
+                'id_pelanggan' => $data['id_pelanggan'] ?? null,
                 'id_kasir' => $data['id_kasir'],
                 'total_harga' => $totalSetelahDiskon,
                 'diskon' => $diskon,

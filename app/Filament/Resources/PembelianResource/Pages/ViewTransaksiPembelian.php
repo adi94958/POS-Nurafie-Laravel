@@ -110,7 +110,6 @@ class ViewTransaksiPembelian extends ViewRecord
                     DB::beginTransaction();
 
                     try {
-                        Log::info("Data : ", $data);
                         $pembelian = $this->record;
 
                         if (!isset($data['total_bayar']) || $data['total_bayar'] <= 0) {

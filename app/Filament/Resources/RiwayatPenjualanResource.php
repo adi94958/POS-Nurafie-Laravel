@@ -289,7 +289,6 @@ class RiwayatPenjualanResource extends Resource
                     fn($query) => $query->where('id_pemilik', Filament::auth()->user()?->pemilik?->id_pemilik)
                 )
                 ->searchable()
-                ->required()
                 ->createOptionForm([
                     Forms\Components\TextInput::make('nama_pelanggan')
                         ->label('Nama Pelanggan')

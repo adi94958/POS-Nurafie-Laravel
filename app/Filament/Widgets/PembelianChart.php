@@ -116,13 +116,6 @@ class PembelianChart extends ChartWidget
                 $this->filterPeriod = 'month';
                 break;
         }
-
-        Log::info('Quick filter applied', [
-            'filter' => $filter,
-            'startDate' => $this->startDate,
-            'endDate' => $this->endDate,
-            'period' => $this->filterPeriod
-        ]);
     }
 
     protected function getData(): array
