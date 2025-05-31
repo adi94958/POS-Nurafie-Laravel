@@ -11,6 +11,8 @@ class ProdukRelationManager extends RelationManager
 {
     protected static string $relationship = 'penjualanDetail';
 
+    protected static ?string $title = 'Data Produk';
+
     public static function modifyQueryUsing($query)
     {
         return $query->with(['produk', 'penjualan']);

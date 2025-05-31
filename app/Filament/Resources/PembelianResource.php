@@ -7,9 +7,9 @@ use App\Filament\Resources\PembelianResource\Pages;
 use App\Filament\Resources\PembelianResource\Widgets\PembelianOverview;
 use App\Models\Pembelian;
 use App\Models\TipeTransfer;
+use App\Models\Stok;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Actions\Exports\Enums\ExportFormat;
-use Filament\Actions\Exports\Models\Export;
 use Filament\Facades\Filament;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -28,6 +28,8 @@ use Filament\Infolists\Infolist;
 use Filament\Tables\Actions\ExportAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PembelianResource extends Resource
 {
@@ -78,30 +80,12 @@ class PembelianResource extends Resource
 
                         Components\Section::make('Data Produk')
                             ->collapsible()
-                            ->headerActions([
-                                Action::make('reset')
-                                    ->modalHeading('Apakah Anda yakin?')
-                                    ->modalDescription('Semua produk yang sudah ada akan dihapus')
-                                    ->requiresConfirmation()
-                                    ->requiresConfirmation()
-                                    ->color('danger')
-                                    ->action(fn(Forms\Set $set) => $set('produk', [])),
-                            ])
                             ->schema([
                                 static::getProdukRepeater(),
                             ]),
 
                         Components\Section::make('Data Pembayaran')
                             ->collapsible()
-                            ->headerActions([
-                                Action::make('reset')
-                                    ->modalHeading('Apakah Anda yakin?')
-                                    ->modalDescription('Semua pembayaran yang sudah ada akan dihapus')
-                                    ->requiresConfirmation()
-                                    ->requiresConfirmation()
-                                    ->color('danger')
-                                    ->action(fn(Forms\Set $set) => $set('pembayaran', [])),
-                            ])
                             ->schema([
                                 static::getPembayaranRepeater(),
                             ]),
@@ -119,10 +103,7 @@ class PembelianResource extends Resource
                     ->formats([
                         ExportFormat::Xlsx,
                     ])
-                    ->fileName(function (Export $export): string {
-                        $date = now()->format('Ymd');
-                        return "Laporan Pembelian-{$date}.csv";
-                    })
+                    ->fileName(fn() => "Laporan Pembelian-" . now()->format('Ymd') . ".csv")
             ])
             ->defaultSort('pembelian.created_at', 'desc')
             ->columns([
@@ -178,17 +159,78 @@ class PembelianResource extends Resource
                         if ($data['created_until'] ?? null) {
                             $indicators['created_until'] = 'Sampai tanggal ' . Carbon::parse($data['created_until'])->translatedFormat('d M Y');
                         }
-
                         return $indicators;
                     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->before(function (Tables\Actions\DeleteAction $action, Model $record) {
+                        $pembelianDetails = $record->pembelianDetail;
+                        DB::beginTransaction();
+
+                        try {
+                            if ($record->status_pembelian !== 'diproses' && $record->tanggal_kedatangan) {
+                                foreach ($pembelianDetails as $detail) {
+                                    Stok::create([
+                                        'id_produk' => $detail->id_produk,
+                                        'jumlah_stok' => $detail->jumlah_produk,
+                                        'jenis_stok' => 'Out',
+                                        'jenis_transaksi' => 'Penghapusan Pembelian',
+                                        'keterangan' => 'Stok keluar karena penghapusan pembelian #' . $record->id_pembelian,
+                                    ]);
+                                }
+                            }
+                            DB::commit();
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            \Filament\Notifications\Notification::make()
+                                ->title('Kesalahan')
+                                ->body('Terjadi kesalahan saat menghapus pembelian: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make()
+                    ->before(function (Collection|array $records) {
+                        $recordsArray = $records instanceof \Illuminate\Support\Collection ? $records->modelKeys() : $records;
+
+                        DB::beginTransaction();
+
+                        try {
+                            foreach ($recordsArray as $recordId) {
+                                $pembelian = Pembelian::with('pembelianDetail')->find($recordId);
+
+                                if (!$pembelian) continue;
+
+                                if ($pembelian->status_pembelian !== 'diproses' && $pembelian->tanggal_kedatangan) {
+                                    foreach ($pembelian->pembelianDetail as $detail) {
+                                        Stok::create([
+                                            'id_produk' => $detail->id_produk,
+                                            'jumlah_stok' => $detail->jumlah_produk,
+                                            'jenis_stok' => 'Out',
+                                            'jenis_transaksi' => 'Penghapusan Pembelian',
+                                            'keterangan' => 'Stok keluar karena penghapusan pembelian #' . $pembelian->id_pembelian,
+                                        ]);
+                                    }
+                                }
+                            }
+
+                            DB::commit();
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Kesalahan')
+                                ->body('Terjadi kesalahan saat menghapus pembelian: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
             ])
             ->groups([
                 Tables\Grouping\Group::make('created_at')
@@ -208,41 +250,35 @@ class PembelianResource extends Resource
                             ->schema([
                                 TextEntry::make('pemasok.nama_perusahaan')
                                     ->label('Nama Perusahaan'),
-
                                 TextEntry::make('uang_diterima')
                                     ->label('Total Yang Sudah Dibayar')
                                     ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
-
                                 TextEntry::make('id_pembelian')
                                     ->label('Nomor Invoice'),
-
                                 TextEntry::make('total_harga')
                                     ->label('Total Harga')
                                     ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state ?? 0, 0, ',', '.')),
-
                                 TextEntry::make('pemasok.alamat')
                                     ->label('Alamat Perusahaan'),
-
                                 TextEntry::make('uang_kembalian')
                                     ->label('Uang Kembalian')
                                     ->visible(fn($record) => $record->uang_kembalian > 0)
                                     ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
-
-                                TextEntry::make('sisa_bayar')
+                                TextEntry::make('sisa_pembayaran')
                                     ->label('Sisa Pembayaran')
-                                    ->visible(fn($record) => $record->sisa_bayar > 0)
+                                    ->visible(fn($record) => $record->sisa_pembayaran > 0)
                                     ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
-
+                                TextEntry::make('tanggal_kedatangan')
+                                    ->label('Tanggal Kedatangan Produk')
+                                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->translatedFormat('d M Y') : '-'),
                             ])
                             ->columns(2)
                             ->columnSpan(2),
-
                         Section::make()
                             ->schema([
                                 TextEntry::make('created_at')
                                     ->label('Dibuat pada')
                                     ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->diffForHumans() : '-'),
-
                                 TextEntry::make('updated_at')
                                     ->label('Terakhir diubah pada')
                                     ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->diffForHumans() : '-'),
@@ -263,18 +299,14 @@ class PembelianResource extends Resource
                     if ($record) {
                         return $record->id_pembelian;
                     }
-
                     $tanggal = Carbon::now()->format('Ymd');
                     $kodeToko = Filament::auth()->user()?->id ?? 0;
-
                     $latestId = \App\Models\Pembelian::whereDate('created_at', now())
                         ->where('id_pembelian', 'like', "INV-{$kodeToko}{$tanggal}%")
                         ->orderByDesc('id_pembelian')
                         ->value('id_pembelian');
-
                     $lastNumber = $latestId ? (int)substr($latestId, -3) : 0;
                     $urutan = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-
                     return "INV-{$kodeToko}{$tanggal}{$urutan}";
                 })
                 ->disabled()
@@ -295,7 +327,6 @@ class PembelianResource extends Resource
                         ->label('Nama Perusahaan')
                         ->required()
                         ->maxLength(255),
-
                     Components\TextInput::make('no_telp')
                         ->label('Nomor Telepon')
                         ->required()
@@ -303,21 +334,16 @@ class PembelianResource extends Resource
                         ->rules(['regex:/^\d+$/'])
                         ->minLength(10)
                         ->maxLength(15),
-
                     Components\TextInput::make('alamat')
                         ->label('Alamat')
                         ->required()
                         ->maxLength(255),
-
                     Forms\Components\Hidden::make('id_pemilik')
                         ->default(fn() => Filament::auth()->user()?->pemilik?->id_pemilik),
-
                 ])
-                ->createOptionAction(function (Action $action) {
-                    return $action
-                        ->modalHeading('Tambah Pemasok')
-                        ->modalWidth('lg');
-                }),
+                ->createOptionAction(fn(Action $action) => $action
+                    ->modalHeading('Tambah Pemasok')
+                    ->modalWidth('lg')),
         ];
     }
 
@@ -326,7 +352,6 @@ class PembelianResource extends Resource
         return Forms\Components\Group::make([
             Forms\Components\Repeater::make('pembelianDetail')
                 ->relationship('pembelianDetail')
-
                 ->schema([
                     Forms\Components\Select::make('id_produk')
                         ->label('Produk')
@@ -418,9 +443,7 @@ class PembelianResource extends Resource
                 ->addActionLabel('Tambah Produk')
                 ->defaultItems(1)
                 ->hiddenLabel()
-                ->columns([
-                    'md' => 10,
-                ])
+                ->columns(['md' => 10])
                 ->required(),
 
             Forms\Components\Placeholder::make('total_harga_display')
@@ -490,9 +513,7 @@ class PembelianResource extends Resource
                 ->schema([
                     Forms\Components\Hidden::make('id_pembayaran')
                         ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, ?string $state) {
-                            if (!$state) {
-                                return;
-                            }
+                            if (!$state) return;
 
                             $pembayaran = \App\Models\Pembayaran::find($state);
                             if ($pembayaran) {
@@ -569,35 +590,28 @@ class PembelianResource extends Resource
                         'keterangan' => $data['keterangan'] ?? null,
                     ]);
 
-                    return [
-                        'id_pembayaran' => $pembayaran->id_pembayaran,
-                    ];
+                    return ['id_pembayaran' => $pembayaran->id_pembayaran];
                 })
                 ->dehydrated()
                 ->reactive()
                 ->addActionLabel('Tambah Pembayaran')
                 ->defaultItems(1)
                 ->hiddenLabel()
-                ->columns([
-                    'md' => 10,
-                ])
-                ->live(true),
+                ->columns(['md' => 10])
+                ->live(),
 
             Forms\Components\Placeholder::make('total_pembayaran_display')
                 ->label('Total Pembayaran')
                 ->content(function (Forms\Get $get, ?Pembelian $record) {
-                    if ($record) {
-                        return 'Rp. ' . number_format($record->uang_diterima, 0, ',', '.');
-                    }
+
 
                     $pembayaranItems = $get('pembayaranPembelian') ?? [];
-                    $total = 0;
+                    $totalPembayaran = 0;
 
                     foreach ($pembayaranItems as $item) {
-                        $total += $item['total_bayar'] ?? 0;
+                        $totalPembayaran += $item['total_bayar'] ?? 0;
                     }
-
-                    return 'Rp. ' . number_format($total, 0, ',', '.');
+                    return 'Rp. ' . number_format($totalPembayaran, 0, ',', '.');
                 })
                 ->columnSpanFull(),
 
@@ -619,7 +633,7 @@ class PembelianResource extends Resource
 
                     return $totalPembayaran > $totalPembelian ? 'Uang Kembalian' : 'Sisa Pembayaran';
                 })
-                ->content(function (Forms\Get $get, ?Pembelian $record) {
+                ->content(function (Forms\Get $get) {
                     $pembayaranItems = $get('pembayaranPembelian') ?? [];
                     $totalPembayaran = 0;
 
@@ -649,11 +663,9 @@ class PembelianResource extends Resource
                 ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get) {
                     $pembelianDetail = $get('pembelianDetail') ?? [];
                     $totalHarga = 0;
-
                     foreach ($pembelianDetail as $item) {
                         $totalHarga += $item['sub_total_harga'] ?? 0;
                     }
-
                     $set('total_harga', $totalHarga);
                 })
                 ->dehydrated(true),
@@ -663,28 +675,20 @@ class PembelianResource extends Resource
                 ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get) {
                     $pembayaranItems = $get('pembayaranPembelian') ?? [];
                     $totalPembayaran = 0;
-
                     foreach ($pembayaranItems as $item) {
                         $totalPembayaran += $item['total_bayar'] ?? 0;
                     }
 
                     $pembelianDetail = $get('pembelianDetail') ?? [];
                     $totalPembelian = 0;
-
                     foreach ($pembelianDetail as $item) {
                         $totalPembelian += $item['sub_total_harga'] ?? 0;
                     }
 
-                    if ($totalPembayaran >= $totalPembelian) {
-                        $set('status_pembelian', 'lunas');
-                    } else {
-                        $set('status_pembelian', 'belum lunas');
-                    }
+                    $set('status_pembelian', $totalPembayaran >= $totalPembelian ? 'lunas' : 'belum lunas');
                 })
                 ->dehydrated(true),
-        ])->columnSpanFull()
-            ->reactive()
-            ->live();
+        ])->columnSpanFull()->reactive()->live();
     }
 
     public static function getPages(): array

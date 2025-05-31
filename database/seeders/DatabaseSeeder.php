@@ -13,14 +13,14 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $this->call(UserSeeder::class);
-        $this->call(KategoriSeeder::class);
-        $this->call(SatuanSeeder::class);
+        // $this->call(KategoriSeeder::class);
+        // $this->call(SatuanSeeder::class);
         $this->call(PemasokSeeder::class);
         $this->call(PelangganSeeder::class);
         $this->call(PenerimaZakatSeeder::class);
         $this->call(ProdukSeeder::class);
-        $this->call(LevelHargaSeeder::class);
-        $this->call(StokProdukSeeder::class);
+        // $this->call(LevelHargaSeeder::class);
+        //     $this->call(StokProdukSeeder::class);
         $this->call(TipeTransferSeeder::class);
         $this->call(PenjualanSeeder::class);
         $this->call(PembelianSeeder::class);

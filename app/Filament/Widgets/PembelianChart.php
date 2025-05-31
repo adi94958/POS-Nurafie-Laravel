@@ -200,7 +200,7 @@ class PembelianChart extends ChartWidget
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->get();
 
-                $totalPiutang = $pembelians->sum('sisa_bayar');
+                $totalPiutang = $pembelians->sum('sisa_pembayaran');
                 return new TrendValue($item->date, $totalPiutang, $totalPiutang);
             });
         } else {

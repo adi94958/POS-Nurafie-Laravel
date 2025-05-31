@@ -67,7 +67,7 @@ class EditRiwayatPenjualan extends EditRecord
                 'status_penjualan' => $statusPenjualan,
                 'uang_diterima' => $totalPembayaran,
                 'uang_kembalian' => $totalPembayaran > $totalSetelahDiskon ? $totalPembayaran - $totalSetelahDiskon : 0,
-                'sisa_bayar' => $totalPembayaran < $totalSetelahDiskon ? $totalSetelahDiskon - $totalPembayaran : 0,
+                'sisa_pembayaran' => $totalPembayaran < $totalSetelahDiskon ? $totalSetelahDiskon - $totalPembayaran : 0,
             ]);
 
             return $record;
@@ -128,7 +128,7 @@ class EditRiwayatPenjualan extends EditRecord
         $data['status_penjualan'] = $totalPembayaran >= $totalSetelahDiskon ? 'lunas' : 'belum lunas';
         $data['uang_diterima'] = $totalPembayaran;
         $data['uang_kembalian'] = $totalPembayaran > $totalSetelahDiskon ? $totalPembayaran - $totalSetelahDiskon : 0;
-        $data['sisa_bayar'] = $totalPembayaran < $totalSetelahDiskon ? $totalSetelahDiskon - $totalPembayaran : 0;
+        $data['sisa_pembayaran'] = $totalPembayaran < $totalSetelahDiskon ? $totalSetelahDiskon - $totalPembayaran : 0;
 
         return $data;
     }

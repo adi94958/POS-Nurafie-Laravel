@@ -18,7 +18,7 @@ class PenerimaZakatSeeder extends Seeder
         $data = [];
         for ($i = 0; $i < 10; $i++) {
             $nama = $faker->name;
-            $length = rand(11, 13);
+            $length = 12;
             $no_telp = '08' . $faker->numerify(str_repeat('#', $length - 2));
             $no_rekening = $faker->numerify(str_repeat('#', 16));
 

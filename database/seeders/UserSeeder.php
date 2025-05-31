@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
         $pemilikData1 = Pemilik::create([
             'id_user' => $pemilik1->id,
             'nama_pemilik' => 'Nurafie',
-            'nama_perusahaan' => 'Toko Oleh-Oleh Haji Nurafie',
+            'nama_perusahaan' => 'Toko Nurafie',
             'alamat_toko' => 'Jl. Mekah No. 17, Bandung',
             'jenis_usaha' => 'Retail Oleh-Oleh Haji',
             'no_telp' => '081234567890'
@@ -58,7 +58,7 @@ class UserSeeder extends Seeder
             'id_user' => $kasir1->id,
             'id_pemilik' => $pemilikData1->id_pemilik,
             'nama' => 'Ahmad Fadillah',
-            'no_telp' => '081111112222',
+            'no_telp' => '084535325523',
             'alamat' => 'Kp. Kauman, Bandung'
         ]);
 
@@ -73,7 +73,7 @@ class UserSeeder extends Seeder
             'id_user' => $kasir2->id,
             'id_pemilik' => $pemilikData1->id_pemilik,
             'nama' => 'Rendi Rohmah',
-            'no_telp' => '082222223333',
+            'no_telp' => '084553235523',
             'alamat' => 'Jl. Cibitung No. 9, Bekasi'
         ]);
 

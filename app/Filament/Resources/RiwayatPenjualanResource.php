@@ -86,29 +86,11 @@ class RiwayatPenjualanResource extends Resource
                             ->columns(2),
 
                         Forms\Components\Section::make('Data Produk')
-                            ->headerActions([
-                                Action::make('reset')
-                                    ->modalHeading('Apakah Anda yakin?')
-                                    ->modalDescription('Semua produk yang sudah ada akan dihapus')
-                                    ->requiresConfirmation()
-                                    ->requiresConfirmation()
-                                    ->color('danger')
-                                    ->action(fn(Forms\Set $set) => $set('produk', [])),
-                            ])
                             ->schema([
                                 static::getProdukRepeater(),
                             ]),
 
                         Forms\Components\Section::make('Data Pembayaran')
-                            ->headerActions([
-                                Action::make('reset')
-                                    ->modalHeading('Apakah Anda yakin?')
-                                    ->modalDescription('Semua pembayaran yang sudah ada akan dihapus')
-                                    ->requiresConfirmation()
-                                    ->requiresConfirmation()
-                                    ->color('danger')
-                                    ->action(fn(Forms\Set $set) => $set('pembayaran', [])),
-                            ])
                             ->schema([
                                 static::getPembayaranRepeater(),
                             ]),
@@ -225,43 +207,56 @@ class RiwayatPenjualanResource extends Resource
     {
         return $infolist
             ->schema([
-                Section::make('Data Transaksi')
+                Grid::make(3)
                     ->schema([
-                        Split::make([
-                            Grid::make(3)
-                                ->schema([
-                                    Group::make([
-                                        TextEntry::make('id_penjualan')
-                                            ->label('Nomor Invoice'),
-                                        TextEntry::make('kasir.nama')
-                                            ->label('Kasir yang Melayani'),
-                                        TextEntry::make('pelanggan.nama_pelanggan')
-                                            ->label('Nama Pelanggan'),
-                                    ]),
-                                    Group::make([
-                                        TextEntry::make('total_harga')
-                                            ->label('Total Harga')
-                                            ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
-                                        TextEntry::make('uang_diterima')
-                                            ->label('Uang Diterima')
-                                            ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
-                                        TextEntry::make('uang_kembalian')
-                                            ->label('Uang Kembalian')
-                                            ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
-                                    ]),
-                                    Group::make([
+                        Section::make('Data Transaksi')
+                            ->schema([
+                                TextEntry::make('id_penjualan')
+                                    ->label('Nomor Invoice'),
 
-                                        TextEntry::make('diskon')
-                                            ->label('Diskon')
-                                            ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
-                                        TextEntry::make('created_at')
-                                            ->label('Waktu Penjualan')
-                                            ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->translatedFormat('d M Y, \\J\\a\\m H:i')),
-                                    ]),
-                                ]),
-                        ])->from('lg'),
-                    ])
-                    ->collapsible(),
+                                TextEntry::make('total_harga')
+                                    ->label('Total Harga')
+                                    ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
+
+                                TextEntry::make('kasir.nama')
+                                    ->label('Kasir yang Melayani'),
+
+                                TextEntry::make('uang_diterima')
+                                    ->label('Uang Diterima')
+                                    ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
+
+                                TextEntry::make('pelanggan.nama_pelanggan')
+                                    ->label('Nama Pelanggan'),
+
+                                TextEntry::make('uang_kembalian')
+                                    ->label('Uang Kembalian')
+                                    ->visible(fn($record) => $record->uang_kembalian > 0)
+                                    ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
+
+                                TextEntry::make('sisa_pembayaran')
+                                    ->label('Sisa Pembayaran')
+                                    ->visible(fn($record) => $record->sisa_pembayaran > 0)
+                                    ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
+
+                                TextEntry::make('diskon')
+                                    ->label('Diskon')
+                                    ->formatStateUsing(fn($state) => $state ? 'Rp. ' . number_format($state, 0, ',', '.') : '-'),
+                            ])
+                            ->columns(2)
+                            ->columnSpan(2),
+
+                        Section::make()
+                            ->schema([
+                                TextEntry::make('created_at')
+                                    ->label('Dibuat pada')
+                                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->diffForHumans() : '-'),
+
+                                TextEntry::make('updated_at')
+                                    ->label('Terakhir diubah pada')
+                                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->diffForHumans() : '-'),
+                            ])
+                            ->columnSpan(1),
+                    ]),
             ]);
     }
 
@@ -717,7 +712,7 @@ class RiwayatPenjualanResource extends Resource
 
                     return $totalPembayaran > $totalPenjualan ? 'Uang Kembalian' : 'Sisa Pembayaran';
                 })
-                ->content(function (Forms\Get $get, ?Penjualan $record) {
+                ->content(function (Forms\Get $get) {
                     $pembayaranItems = $get('pembayaranPenjualan') ?? [];
                     $totalPembayaran = 0;
 
@@ -740,8 +735,7 @@ class RiwayatPenjualanResource extends Resource
                         return 'Rp. ' . number_format($sisa, 0, ',', '.');
                     }
                 })
-                ->columnSpanFull()
-                ->live(),
+                ->columnSpanFull(),
 
             Forms\Components\Hidden::make('total_harga')
                 ->reactive()

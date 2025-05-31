@@ -2,123 +2,201 @@
 
 namespace Database\Seeders;
 
+use App\Models\Kasir;
+use App\Models\Pemasok;
+use App\Models\Pembayaran;
+use App\Models\PembayaranPembelian;
+use App\Models\Pembelian;
+use App\Models\PembelianDetail;
+use App\Models\Produk;
+use App\Models\TipeTransfer;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Faker\Factory as Faker;
 
 class PembelianSeeder extends Seeder
 {
     public function run()
     {
-        Schema::disableForeignKeyConstraints();
-        DB::table('pembelian_detail')->truncate();
-        DB::table('pembelian')->truncate();
-        DB::table('pembayaran_pembelian')->truncate();
-        Schema::enableForeignKeyConstraints();
+        $faker = Faker::create();
 
-        $produkList = DB::table('produk')->get();
-        $userId = 1; // Ganti sesuai kebutuhan (misal admin/toko yang melakukan pembelian)
+        // Simulate sales transactions
+        $this->generateSalesTransactions($faker);
+    }
 
-        foreach ($produkList as $produk) {
-            foreach (['this', 'last'] as $periode) {
-                $jumlahPembelianPerBulan = rand(2, 4);
+    protected function generateSalesTransactions($faker)
+    {
+        $produks = Produk::get();
+        $idPemilik = Kasir::find(1)->id_pemilik ?? 1;
+        $startDate = Carbon::now()->subYear()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+        $currentDay = null;
+        $dailyCounter = 1;
 
-                $start = $periode === 'this' ? Carbon::now()->startOfMonth() : Carbon::now()->subMonth()->startOfMonth();
-                $end = $periode === 'this' ? Carbon::now()->endOfMonth() : Carbon::now()->subMonth()->endOfMonth();
+        while ($startDate->lte($endDate)) {
+            if ($currentDay != $startDate->format('Ymd')) {
+                $currentDay = $startDate->format('Ymd');
+                $dailyCounter = 1;
+            }
 
-                $totalDays = $end->diffInDays($start);
-                $segmentSize = $totalDays / $jumlahPembelianPerBulan;
+            $jumlahTransaksi = 1;
 
-                for ($i = 0; $i < $jumlahPembelianPerBulan; $i++) {
-                    $segmentStart = $start->clone()->addDays($i * $segmentSize);
-                    $segmentEnd = $start->clone()->addDays(($i + 1) * $segmentSize - 1);
+            for ($i = 0; $i < $jumlahTransaksi; $i++) {
+                $tanggal = $startDate->copy()->setTime(rand(8, 18), rand(0, 59), 0);
+                $produk = $produks->random();
+                $jumlah = rand(1, 3);
 
-                    if ($segmentEnd->greaterThan($end)) {
-                        $segmentEnd = $end->clone();
-                    }
+                // Get price from level harga
+                $hargaBeli = $produk->harga_beli;
 
-                    $createdAt = Carbon::createFromTimestamp(
-                        rand($segmentStart->timestamp, $segmentEnd->timestamp)
-                    );
-                    $updatedAt = (clone $createdAt)->addDays(rand(1, 3));
+                $total = $jumlah * $hargaBeli;
+                $total = round($total / 5000) * 5000;
 
-                    // Generate custom id_pembelian
-                    $tanggal = $createdAt->format('Ymd');
-                    $prefix = "INV-{$userId}{$tanggal}";
+                $bayar = $faker->randomElement([
+                    $total,
+                    max(0, round(($total - rand(5000, 20000)) / 5000) * 5000)
+                ]);
+                $metode = $faker->randomElement(['tunai', 'transfer', 'utang']);
 
-                    $latestId = DB::table('pembelian')
-                        ->whereDate('created_at', $createdAt->toDateString())
-                        ->where('id_pembelian', 'like', "{$prefix}%")
-                        ->orderByDesc('id_pembelian')
-                        ->value('id_pembelian');
+                $transfer = $this->getTransferDetails($faker, $metode);
 
-                    $lastNumber = $latestId ? (int)substr($latestId, -3) : 0;
-                    $urutan = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-                    $idPembelianStr = "{$prefix}{$urutan}";
+                $transactionData = [
+                    'total_harga' => $total,
+                    'total_bayar' => $metode === 'utang' ? null : $bayar,
+                    'tanggal_pembelian' => $tanggal,
+                    'is_diproses' => $faker->boolean(10),
+                    'jenis_pembayaran' => $metode,
+                    'metode_transfer' => $transfer['metode_transfer'],
+                    'jenis_transfer' => $transfer['jenis_transfer'],
+                    'details' => [
+                        [
+                            'id_produk' => $produk->id_produk,
+                            'jumlah_produk' => $jumlah,
+                        ]
+                    ]
+                ];
 
-                    $idPemasok = rand(1, 2);
-                    $status = (rand(0, 1) == 1) ? 'Lunas' : 'Belum Lunas';
+                $idPembelian = 'INV-' . $idPemilik . $tanggal->format('Ymd') . str_pad($dailyCounter++, 3, '0', STR_PAD_LEFT);
 
-                    DB::table('pembelian')->insert([
-                        'id_pembelian' => $idPembelianStr,
-                        'id_pemasok' => $idPemasok,
-                        'total_harga' => 0,
-                        'status_pembelian' => $status,
-                        'created_at' => $createdAt,
-                        'updated_at' => $createdAt,
-                        'tanggal_kedatangan' => $updatedAt,
-                    ]);
+                $this->createTransaction($transactionData, $idPembelian);
+            }
 
-                    $jumlahProduk = rand(5, 20);
-                    DB::table('pembelian_detail')->insert([
-                        'id_pembelian' => $idPembelianStr,
-                        'id_produk' => $produk->id_produk,
-                        'jumlah_produk' => $jumlahProduk,
-                        'created_at' => $createdAt,
-                        'updated_at' => $createdAt,
-                    ]);
+            $startDate->addDay(4);
+        }
+    }
 
+
+    protected function getTransferDetails($faker, $metode)
+    {
+        if ($metode === 'transfer') {
+            // Get a random transfer type from the database
+            $tipeTransfer = TipeTransfer::inRandomOrder()->first();
+
+            if ($tipeTransfer) {
+                return [
+                    'metode_transfer' => $tipeTransfer->metode_transfer,
+                    'jenis_transfer' => $tipeTransfer->jenis_transfer
+                ];
+            }
+
+            // Fallback if no transfer types exist in the database
+            return [
+                'metode_transfer' => 'bank',
+                'jenis_transfer' => 'BRI'
+            ];
+        }
+
+        return ['metode_transfer' => null, 'jenis_transfer' => null];
+    }
+
+    protected function createTransaction($data, $idPembelian)
+    {
+        DB::transaction(function () use ($data, $idPembelian) {
+            $status = $this->determineStatus($data);
+
+            // Create pembelian record
+            Pembelian::create([
+                'id_pembelian' => $idPembelian,
+                'id_pemasok' => Pemasok::where('id_pemilik', 1)->inRandomOrder()->value('id_pemasok'),
+                'total_harga' => $data['total_harga'],
+                'status_pembelian' => $status,
+                'tanggal_kedatangan' => $data['tanggal_pembelian'],
+                'created_at' => $data['tanggal_pembelian'],
+                'updated_at' => $data['tanggal_pembelian']
+            ]);
+
+            // Create pembelian details and stock records
+            foreach ($data['details'] as $detail) {
+                PembelianDetail::create([
+                    'id_pembelian' => $idPembelian,
+                    'id_produk' => $detail['id_produk'],
+                    'jumlah_produk' => $detail['jumlah_produk'],
+                ]);
+
+                if ($status !== 'diproses') {
                     DB::table('stok')->insert([
-                        'id_produk' => $produk->id_produk,
-                        'jumlah_stok' => $jumlahProduk,
+                        'id_produk' => $detail['id_produk'],
+                        'jumlah_stok' => $detail['jumlah_produk'],
                         'jenis_stok' => 'In',
-                        'jenis_transaksi' => 'Pembelian',
-                        'keterangan' => 'Pembelian Produk',
-                        'created_at' => $updatedAt,
-                        'updated_at' => $updatedAt
-                    ]);
-
-                    $totalHarga = DB::table('pembelian_detail')
-                        ->join('produk', 'pembelian_detail.id_produk', '=', 'produk.id_produk')
-                        ->where('pembelian_detail.id_pembelian', $idPembelianStr)
-                        ->sum(DB::raw('produk.harga_beli * pembelian_detail.jumlah_produk'));
-
-                    DB::table('pembelian')->where('id_pembelian', $idPembelianStr)->update([
-                        'total_harga' => $totalHarga,
-                    ]);
-
-                    $jenisPembayaran = ($status === 'Lunas') ? 'tunai' : 'transfer';
-                    $multiplier = ($status === 'Lunas') ? (rand(100, 120) / 100) : 0.5;
-                    $totalBayar = intval($totalHarga * $multiplier);
-
-                    $idPembayaran = DB::table('pembayaran')->insertGetId([
-                        'id_tipe_transfer' => ($jenisPembayaran === 'transfer') ? 1 : null,
-                        'jenis_pembayaran' => $jenisPembayaran,
-                        'total_bayar' => $totalBayar,
-                        'keterangan' => ($status === 'Lunas') ? 'Lunas tunai' : 'Bayar sebagian via transfer',
-                        'created_at' => $createdAt,
-                        'updated_at' => $updatedAt,
-                    ]);
-
-                    DB::table('pembayaran_pembelian')->insert([
-                        'id_pembayaran' => $idPembayaran,
-                        'id_pembelian' => $idPembelianStr,
-                        'created_at' => $createdAt,
-                        'updated_at' => $updatedAt,
+                        'jenis_transaksi' => $idPembelian,
+                        'created_at' => $data['tanggal_pembelian'],
+                        'updated_at' => $data['tanggal_pembelian']
                     ]);
                 }
             }
+
+            // Create payment record if not utang
+            if (strtolower($data['jenis_pembayaran']) !== 'utang' && isset($data['total_bayar'])) {
+                $this->createPaymentRecord($data, $idPembelian, $status);
+            }
+        });
+    }
+
+    protected function determineStatus($data)
+    {
+        if ($data['is_diproses']) {
+            return 'diproses';
         }
+
+        return ($data['total_bayar'] ?? 0) >= $data['total_harga'] ? 'lunas' : 'belum lunas';
+    }
+
+    protected function createPaymentRecord($data, $idPembelian, $status)
+    {
+        $tipeTransfer = $this->getMetodePembayaran($data);
+
+        $pembayaran = Pembayaran::create([
+            'total_bayar' => $data['total_bayar'],
+            'keterangan' => $status === 'lunas' ? 'Lunas' : 'Bayar Sebagian',
+            'id_tipe_transfer' => $tipeTransfer->id_tipe_transfer ?? null,
+            'jenis_pembayaran' => $data['jenis_pembayaran'],
+            'created_at' => $data['tanggal_pembelian'],
+            'updated_at' => $data['tanggal_pembelian']
+        ]);
+
+        PembayaranPembelian::create([
+            'id_pembelian' => $idPembelian,
+            'id_pembayaran' => $pembayaran->id_pembayaran,
+            'created_at' => $data['tanggal_pembelian'],
+            'updated_at' => $data['tanggal_pembelian']
+        ]);
+    }
+
+    protected function getMetodePembayaran($data)
+    {
+        if (strtolower($data['jenis_pembayaran']) === 'transfer') {
+            $tipeTransfer = TipeTransfer::where('metode_transfer', $data['metode_transfer'])
+                ->where('jenis_transfer', $data['jenis_transfer'])
+                ->first();
+
+            if (!$tipeTransfer) {
+                throw new \Exception("Tipe transfer tidak ditemukan: metode = {$data['metode_transfer']}, jenis = {$data['jenis_transfer']}");
+            }
+
+            return $tipeTransfer;
+        }
+
+        return null;
     }
 }

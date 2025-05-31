@@ -13,10 +13,6 @@ class ViewStok extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('Edit Stok')
-                ->url(StokResource::getUrl('create'))
-                ->color('primary')
-        ];
+        return [];
     }
 }

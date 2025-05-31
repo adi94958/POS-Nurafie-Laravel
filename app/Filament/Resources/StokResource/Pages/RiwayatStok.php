@@ -4,7 +4,6 @@ namespace App\Filament\Resources\StokResource\Pages;
 
 use App\Filament\Exports\StokDetailExporter;
 use App\Filament\Resources\StokResource;
-use App\Models\Produk;
 use App\Models\Stok;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\Exports\Models\Export;
@@ -35,7 +34,7 @@ class RiwayatStok extends ManageRelatedRecords
             ->query(
                 Stok::query()
                     ->where('id_produk', $id_produk)
-                    ->where('jenis_transaksi', '!=', 'Stok Awal') // Menghilangkan data dengan keterangan "Stok Awal"
+                    ->where('jenis_transaksi', '!=', 'Stok Awal')
             )
             ->defaultSort('created_at', 'desc')
             ->headerActions([
@@ -46,10 +45,9 @@ class RiwayatStok extends ManageRelatedRecords
                     ])
                     ->fileName(function (Export $export): string {
                         $date = now()->format('Ymd');
-                        $produk = $this->record->produk; // asumsinya relasi 'produk' sudah ada
+                        $produk = $this->record->produk;
 
                         $namaProduk = ucwords(str($produk->nama_produk ?? 'produk')->slug(' '));
-                        // $namaProduk = Produk::find($this->record->$id_produk)->nama_produk;
                         return "Laporan Stok Produk {$namaProduk}-{$date}.csv";
                     })
             ])
@@ -71,18 +69,17 @@ class RiwayatStok extends ManageRelatedRecords
                     }),
                 TextColumn::make('jumlah_stok')
                     ->label('Jumlah')
-                    ->integer()
-                    ->minValue(1)
-                    ->rules(['regex:/^\d+$/'])
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('jenis_transaksi')
                     ->label('Jenis Transaksi')
                     ->searchable()
+                    ->placeholder('-')
                     ->sortable(),
                 TextColumn::make('keterangan')
                     ->label('Keterangan')
                     ->searchable()
+                    ->placeholder('-')
                     ->sortable(),
             ])
             ->filters([

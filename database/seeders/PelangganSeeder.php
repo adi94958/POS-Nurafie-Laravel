@@ -17,9 +17,8 @@ class PelangganSeeder extends Seeder
 
         $data = [];
         for ($i = 0; $i < 10; $i++) {
-            // Tentukan panjang total nomor telepon (antara 10 sampai 15 digit)
-            $totalLength = rand(11, 13);
-            $remainingDigits = $totalLength - 2; // dikurangi panjang '08'
+            $totalLength = 12;
+            $remainingDigits = $totalLength - 2;
             $number = '08' . $faker->numerify(str_repeat('#', $remainingDigits));
 
             $data[] = [

@@ -4,79 +4,101 @@ namespace Database\Seeders;
 
 use App\Models\TipeTransfer;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class TipeTransferSeeder extends Seeder
 {
     public function run(): void
     {
+        // Clear existing data to avoid duplicates
+        if (DB::table('tipe_transfer')->count() > 0) {
+            Schema::disableForeignKeyConstraints();
+            DB::table('tipe_transfer')->truncate();
+            Schema::enableForeignKeyConstraints();
+        }
+
+        // Bank data with shorter names (avoiding truncation)
         $banks = [
+            // Bank BUKU IV (Largest Indonesian Banks)
             'BCA',
             'Mandiri',
             'BRI',
             'BNI',
+
+            // Bank BUKU III (Large Banks)
             'BTN',
             'CIMB Niaga',
             'Danamon',
             'Permata',
-            'Panin Bank',
+            'Panin',
             'OCBC NISP',
+            'Maybank',
             'BTPN',
-            'Bank Muamalat',
-            'Bank Syariah Indonesia (BSI)',
-            'Bank Jago',
-            'Bank Mega',
-            'Bank Bukopin',
-            'Bank Mayapada',
-            'Bank Sinarmas',
-            'Bank BJB (Jabar Banten)',
+
+            // Syariah Banks
+            'BSI',
+            'Muamalat',
+            'Mega Syariah',
+            'BCA Syariah',
+            'BJB Syariah',
+            'CIMB Niaga Syariah',
+
+            // Digital Banks
+            'Jago',
+            'Neo Commerce',
+            'Jenius',
+            'Digibank',
+            'Blu',
+            'Wokee',
+            'LINE Bank',
+
+            // Regional Development Banks (BPD)
+            'BJB',
             'Bank DKI',
             'Bank Jatim',
             'Bank Jateng',
             'Bank Sumut',
-            'Bank Sumsel Babel',
-            'Bank Kaltimtara',
-            'Bank Kalteng',
-            'Bank Kalsel',
-            'Bank NTB Syariah',
-            'Bank NTT',
-            'Bank Papua',
-            'Bank Riau Kepri Syariah',
-            'Bank Maluku Malut',
-            'Bank Bengkulu',
-            'Bank Lampung',
-            'Bank SulutGo',
-            'Bank Sulteng',
-            'Bank Sulselbar',
             'Bank Nagari',
             'Bank Aceh Syariah',
+            'Bank SulutGo',
         ];
 
-        $eMonies = [
+        // E-wallet data with shorter names
+        $eWallets = [
+            // Major E-wallets
             'GoPay',
             'OVO',
             'DANA',
             'ShopeePay',
             'LinkAja',
-            'iSaku',
+            'QRIS',
+
+            // Bank-Based E-wallets
             'Sakuku',
-            'Paytren',
-            'TrueMoney',
             'Jenius Pay',
-            'SPIN (MNC Bank)',
-            'DOKU Wallet',
-            'XL Tunai',
-            'Mandiri E-Cash',
-            'T-Cash (Telkomsel)',
-            'Bima Money',
-            'BRIZZI (BRI)',
-            'TapCash (BNI)',
-            'Flazz (BCA)',
-            'E-wallet (Mandiri)',
-            'JakCard (Bank DKI)',
+            'Livin',
+            'BRImo',
+            'OCTO Mobile',
+            'Neo+',
+
+            // Other E-wallets
+            'Doku',
+            'iSaku',
+            'Paytren',
+            'Bluepay',
+
+            // E-money Cards
+            'Flazz',
+            'BRIzzi',
+            'TapCash',
+            'e-Money',
+            'JakCard',
         ];
 
         $data = [];
 
+        // Add banks with proper format
         foreach ($banks as $bank) {
             $data[] = [
                 'metode_transfer' => 'bank',
@@ -86,10 +108,11 @@ class TipeTransferSeeder extends Seeder
             ];
         }
 
-        foreach ($eMonies as $eMoney) {
+        // Add e-wallets with proper format
+        foreach ($eWallets as $eWallet) {
             $data[] = [
-                'metode_transfer' => 'e-wallet',
-                'jenis_transfer' => $eMoney,
+                'metode_transfer' => 'e-wallet',  // Change to 'e-wallet' with hyphen
+                'jenis_transfer' => $eWallet,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

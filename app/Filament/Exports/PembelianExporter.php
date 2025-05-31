@@ -14,23 +14,25 @@ class PembelianExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('pembelian.created_at')
-                ->label('Tanggal Pembelian')
-                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->translatedFormat('d M Y, \\J\\a\\m H:i')),
+            ExportColumn::make('pembelian.id_pembelian')
+                ->label('No Invoice'),
             ExportColumn::make('pemasok.nama_perusahaan')
                 ->label('Nama Perusahaan Pemasok'),
             ExportColumn::make('total_harga')
                 ->label('Total Harga')
                 ->formatStateUsing(fn($state) => 'Rp. ' . number_format($state, 0, ',', '.')),
+            ExportColumn::make('pembelian.created_at')
+                ->label('Tanggal Pembelian')
+                ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->translatedFormat('d M Y, \\J\\a\\m H:i')),
         ];
     }
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your pembelian export has completed and ' . number_format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = 'Ekspor selesai! ' . number_format($export->successful_rows) . ' baris berhasil diekspor.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' ' . number_format($failedRowsCount) . ' baris gagal diekspor.';
         }
 
         return $body;

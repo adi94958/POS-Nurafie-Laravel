@@ -35,7 +35,7 @@ class Login extends BaseLogin
             ->autocomplete()
             ->autofocus()
             ->extraInputAttributes(['tabindex' => 1])
-            ->placeholder('Masukkan email Anda');
+            ->placeholder('Masukan email Anda');
     }
 
     protected function getPasswordFormComponent(): Component
@@ -45,7 +45,7 @@ class Login extends BaseLogin
             ->password()
             ->required()
             ->extraInputAttributes(['tabindex' => 2])
-            ->placeholder('Masukkan password Anda');
+            ->placeholder('Masukan kata sandi Anda');
     }
 
     public function authenticate(): ?LoginResponse

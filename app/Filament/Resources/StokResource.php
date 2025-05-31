@@ -59,7 +59,7 @@ class StokResource extends Resource
         return $form
             ->model(Stok::class)
             ->schema([
-                Components\Section::make('Form Stok')
+                Components\Section::make('Form Ubah Stok')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([

@@ -40,7 +40,7 @@ class ArusKeuanganResource extends Resource
     {
         return $form
             ->schema([
-                Components\Section::make('Form Kasir')
+                Components\Section::make('Form Arus Keuangan')
                     ->schema([
                         Components\Grid::make(2)
                             ->schema([

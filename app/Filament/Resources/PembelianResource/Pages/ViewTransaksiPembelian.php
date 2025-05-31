@@ -14,7 +14,7 @@ use App\Models\PembayaranPembelian;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ViewTransaksiPembelian extends ViewRecord
 {
@@ -36,23 +36,7 @@ class ViewTransaksiPembelian extends ViewRecord
                     try {
                         $pembelian = $this->record;
 
-                        if (!$pembelian) {
-                            throw new \Exception('Data pembelian tidak ditemukan.');
-                        }
-
-                        if ($pembelian->pembelianDetail->isEmpty()) {
-                            throw new \Exception('Detail pembelian tidak ditemukan.');
-                        }
-
                         foreach ($pembelian->pembelianDetail as $detail) {
-                            if (!$detail->id_produk) {
-                                throw new \Exception('ID produk tidak valid pada detail pembelian.');
-                            }
-
-                            if ($detail->jumlah_produk <= 0) {
-                                throw new \Exception('Jumlah produk tidak valid untuk produk ID: ' . $detail->id_produk);
-                            }
-
                             Stok::create([
                                 'id_produk' => $detail->id_produk,
                                 'jumlah_stok' => $detail->jumlah_produk,
@@ -66,6 +50,7 @@ class ViewTransaksiPembelian extends ViewRecord
 
                         $pembelian->update([
                             'status_pembelian' => $status,
+                            'tanggal_kedatangan' => Carbon::now()->toDateString(),
                         ]);
 
                         DB::commit();
@@ -79,7 +64,6 @@ class ViewTransaksiPembelian extends ViewRecord
                         $this->redirect(PembelianResource::getUrl('index'));
                     } catch (\Throwable $e) {
                         DB::rollBack();
-                        report($e);
 
                         Notification::make()
                             ->title('Gagal')
@@ -99,7 +83,7 @@ class ViewTransaksiPembelian extends ViewRecord
                         ->columnSpanFull(),
                     Forms\Components\Placeholder::make('sisa_pembayaran')
                         ->label('Sisa Pembayaran')
-                        ->content(fn() => 'Rp. ' . number_format($this->record->sisa_bayar, 0, ',', '.')),
+                        ->content(fn() => 'Rp. ' . number_format($this->record->sisa_pembayaran, 0, ',', '.')),
                     Forms\Components\TextInput::make('keterangan')
                         ->label('Keterangan')
                         ->default('Pembayaran untuk pembelian #' . $this->record->id_pembelian)
@@ -110,12 +94,7 @@ class ViewTransaksiPembelian extends ViewRecord
                     DB::beginTransaction();
 
                     try {
-                        Log::info("Data : ", $data);
                         $pembelian = $this->record;
-
-                        if (!isset($data['total_bayar']) || $data['total_bayar'] <= 0) {
-                            throw new \Exception('Nominal pembayaran harus lebih dari 0.');
-                        }
 
                         $metode = $data['metode_pembayaran'] ?? 'tunai';
                         $tipe = ($metode === 'transfer') ? ($data['tipe_pembayaran'] ?? null) : null;
@@ -152,7 +131,6 @@ class ViewTransaksiPembelian extends ViewRecord
                         $this->redirect(PembelianResource::getUrl('view', ['record' => $pembelian->id_pembelian]));
                     } catch (\Throwable $e) {
                         DB::rollBack();
-                        report($e);
 
                         Notification::make()
                             ->title('Gagal')
@@ -162,8 +140,7 @@ class ViewTransaksiPembelian extends ViewRecord
                     }
                 })
                 ->color('danger')
-                ->modalHeading('Pembayaran Pembelian')
-                ->modalDescription('Masukkan detail pembayaran untuk pembelian ini.');
+                ->modalHeading('Pembayaran Pembelian');
         }
 
         return $actions;

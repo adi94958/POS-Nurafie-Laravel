@@ -72,7 +72,7 @@ class Pembelian extends Model
         );
     }
 
-    protected function sisaBayar(): Attribute
+    protected function sisaPembayaran(): Attribute
     {
         return Attribute::make(
             get: fn() => $this->uang_diterima < $this->total_harga

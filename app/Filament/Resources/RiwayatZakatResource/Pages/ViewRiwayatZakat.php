@@ -15,9 +15,7 @@ class ViewRiwayatZakat extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\DeleteAction::make(),
-        ];
+        return [];
     }
 
     public function getRelationManagers(): array
