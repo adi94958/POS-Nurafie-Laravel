@@ -239,7 +239,6 @@ class ProdukSeeder extends Seeder
         $produkList = Produk::all();
 
         foreach ($produkList as $produk) {
-            // Add initial stock record with 0 quantity
             $this->addStok($produk, 0, null, null, 'Stok Awal', $baseDate);
         }
     }
