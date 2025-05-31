@@ -28,8 +28,13 @@ class ProdukRelationManager extends RelationManager
         return $table
             ->heading("Data Produk")
             ->columns([
-                Tables\Columns\TextColumn::make('produk.nama_produk')
-                    ->label('Nama Produk'),
+                Tables\Columns\TextColumn::make('nama_produk')
+                    ->label('Nama Produk')
+                    ->getStateUsing(function ($record) {
+                        return $record->id_produk && $record->produk
+                            ? $record->produk->nama_produk
+                            : $record->nama_produk;
+                    }),
 
                 Tables\Columns\TextColumn::make('jumlah_produk')
                     ->label('Jumlah Produk'),

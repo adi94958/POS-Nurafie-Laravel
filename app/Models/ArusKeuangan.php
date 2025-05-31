@@ -42,21 +42,18 @@ class ArusKeuangan extends Model
     public function calculateRunningBalance($tabFilter = 'Semua', $dateFrom = null, $dateUntil = null)
     {
         $query = self::query()
-            ->where('created_at', '<=', $this->created_at)
             ->where(function ($q) {
                 $q->where('created_at', '<', $this->created_at)
-                    ->orWhere('id_arus_keuangan', '<=', $this->id_arus_keuangan);
+                    ->orWhere(function ($q2) {
+                        $q2->where('created_at', $this->created_at)
+                            ->where('id_arus_keuangan', '<=', $this->id_arus_keuangan);
+                    });
             });
 
-        // Apply date range filter
-        if ($dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
-        }
-        if ($dateUntil) {
-            $query->whereDate('created_at', '<=', $dateUntil);
-        }
+        // Jangan filter berdasarkan dateFrom dan dateUntil
+        // karena running balance harus menghitung semua sebelum transaksi ini
 
-        // Apply filter based on tab
+        // Filter berdasarkan tab (jenis pembayaran)
         if ($tabFilter === 'Tunai') {
             $query->whereHas('pembayaran', function ($q) {
                 $q->where('jenis_pembayaran', 'tunai');
@@ -66,7 +63,6 @@ class ArusKeuangan extends Model
                 $q->where('jenis_pembayaran', 'transfer');
             });
         }
-        // For 'Semua' tab, no additional filter needed
 
         $transactions = $query->orderBy('created_at', 'asc')
             ->orderBy('id_arus_keuangan', 'asc')
@@ -83,6 +79,7 @@ class ArusKeuangan extends Model
 
         return $balance;
     }
+
 
     /**
      * Get saldo attribute (for backward compatibility)

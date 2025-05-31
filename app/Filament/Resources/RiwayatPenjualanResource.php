@@ -382,6 +382,7 @@ class RiwayatPenjualanResource extends Resource
 
             Forms\Components\TextInput::make('diskon')
                 ->label('Diskon')
+                ->prefix('Rp.')
                 ->required()
                 ->reactive()
                 ->afterStateUpdated(function ($state, Forms\Set $set, callable $get) {
@@ -402,13 +403,32 @@ class RiwayatPenjualanResource extends Resource
                     Forms\Components\Grid::make()
                         ->columns(10)
                         ->schema([
+                            Forms\Components\TextInput::make('nama_produk')
+                                ->label('Nama Produk')
+                                ->required(fn(callable $get) => !$get('id_produk'))
+                                ->visible(fn(callable $get) => !$get('id_produk'))
+                                ->columnSpan(['md' => 4]),
+
+                            Forms\Components\TextInput::make('harga_jual')
+                                ->label('Harga Jual')
+                                ->prefix('Rp. ')
+                                ->minValue(1)
+                                ->required(fn(callable $get) => !$get('id_produk'))
+                                ->visible(fn(callable $get) => !$get('id_produk'))
+                                ->afterStateUpdated(function ($state, Forms\Set $set, callable $get) {
+                                    $jumlah = $get('jumlah_produk') ?? 1;
+                                    $set('sub_total_harga', $state * $jumlah);
+                                })
+                                ->columnSpan(['md' => 4]),
+
                             Forms\Components\Select::make('id_produk')
-                                ->label('Produk')
+                                ->label('Nama Produk')
                                 ->relationship('produk', 'nama_produk')
                                 ->required()
                                 ->reactive()
                                 ->preload()
                                 ->distinct()
+                                ->visible(fn(callable $get) => !$get('nama_produk'))
                                 ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                 ->afterStateUpdated(function ($state, Forms\Set $set, callable $get) {
                                     if (!$state) {
@@ -496,7 +516,7 @@ class RiwayatPenjualanResource extends Resource
                                     $set('sub_total_harga', $harga * $jumlah);
                                 })
                                 ->dehydrated()
-                                ->visible(fn(callable $get) => $get('id_level_harga'))
+                                ->visible(fn(callable $get) => $get('id_level_harga') || !$get('id_produk'))
                                 ->columnSpan(['md' => 2]),
 
                             Forms\Components\Placeholder::make('satuan_produk')

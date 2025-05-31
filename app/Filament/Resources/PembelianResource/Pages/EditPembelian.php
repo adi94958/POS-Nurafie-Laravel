@@ -138,11 +138,6 @@ class EditPembelian extends EditRecord
         });
     }
 
-    protected function halt(): void
-    {
-        throw new Exception('Perubahan stok tidak valid. Silakan periksa notifikasi.');
-    }
-
     protected function validateStockChanges(Model $record, array $data): array
     {
         $result = [

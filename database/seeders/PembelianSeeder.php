@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Faker\Factory as Faker;
+use Illuminate\Support\Str;
 
 class PembelianSeeder extends Seeder
 {
@@ -139,7 +140,8 @@ class PembelianSeeder extends Seeder
                         'id_produk' => $detail['id_produk'],
                         'jumlah_stok' => $detail['jumlah_produk'],
                         'jenis_stok' => 'In',
-                        'jenis_transaksi' => $idPembelian,
+                        'jenis_transaksi' => 'Pembelian',
+                        'keterangan' => 'Stok keluar dari penjualan #' . $idPembelian,
                         'created_at' => $data['tanggal_pembelian'],
                         'updated_at' => $data['tanggal_pembelian']
                     ]);
