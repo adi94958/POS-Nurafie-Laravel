@@ -106,7 +106,6 @@ class ReorderPointService
      */
     protected function calculateLeadTime($produkId, $lastMonth)
     {
-        Log::info("Hitung lead time untuk produk: $produkId, bulan: $lastMonth");
         try {
             $pembelianBulanLalu = DB::table('pembelian_detail')
                 ->join('pembelian', 'pembelian_detail.id_pembelian', '=', 'pembelian.id_pembelian')
@@ -123,11 +122,8 @@ class ReorderPointService
                 }
             }
             
-            Log::info("Lead times: ", $leadTimes);
-            Log:info("Dibagi : " . count($leadTimes));
             // Ambil rata-rata lead time atau default ke 2, bulatkan minimum 1 hari
             $leadTime = count($leadTimes) > 0 ? array_sum($leadTimes) / count($leadTimes) : 2;
-            Log::info("Lead time: " . $leadTime);
             return max(1, round($leadTime));
         } catch (Exception $e) {
             Log::error('Error calculating lead time: ' . $e->getMessage());
@@ -142,8 +138,6 @@ class ReorderPointService
             $now = Carbon::now()->setTimezone('Asia/Jakarta');
             // $lastDayThisMonth = Carbon::now()->endOfMonth()->setTimezone('Asia/Jakarta');
             $lastDayThisWeek = Carbon::now()->addWeek()->endOfDay()->setTimezone('Asia/Jakarta');
-            Log::info("NOW : $now");
-            Log::info("Last Day This Week : $lastDayThisWeek");
             $lastMonth = Carbon::now()->subMonth()->setTimezone('Asia/Jakarta');
             
             // Cek musiman (Ramadhan/Dzulhijjah)
@@ -187,8 +181,7 @@ class ReorderPointService
                             
                             if ($start && isset($salesData[$start])) {
                                 $lastPeriodSales = $salesData[$start];
-                                $daysInPeriod = Carbon::parse($start)->daysInMonth;
-                                Log::info("Last Period Sales (Musiman): $lastPeriodSales, Days: $daysInPeriod");
+                                $daysInPeriod = Carbon::parse($start)->daysInMonth;$daysInPeriod;
                             }
                         } catch (Exception $e) {
                             Log::error('Error processing musiman data: ' . $e->getMessage());

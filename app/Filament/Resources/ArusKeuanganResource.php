@@ -112,10 +112,9 @@ class ArusKeuanganResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('created_at')
-                    ->label('Tanggal Pembelian')
+                    ->label('Tanggal')
                     ->formatStateUsing(fn($state) => \Carbon\Carbon::parse($state)->translatedFormat('d M Y, \\J\\a\\m H:i'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 TextColumn::make('keterangan')
                     ->label('Keterangan'),

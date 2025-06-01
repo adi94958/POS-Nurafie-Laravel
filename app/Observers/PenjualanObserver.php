@@ -16,9 +16,9 @@ class PenjualanObserver
     {
         try {
             Notification::make()
-                ->title('Transaksi Penjualan Baru: ' . $this->penjualan->id_penjualan)
+                ->title('Transaksi Penjualan Baru')
                 ->body(
-                    "ID Penjualan: {$this->penjualan->id_penjualan}\n" .
+                    "ID Penjualan: {$this->penjualan->id_penjualan}<br>" .
                         "Total Harga Rp " . number_format($this->penjualan->total_harga, 0, ',', '.')
                 )
                 ->success()

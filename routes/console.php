@@ -12,3 +12,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:calculate-r-o-p')->dailyAt('01:00');
+// Schedule::command('app:calculate-r-o-p')->everyMinute();
