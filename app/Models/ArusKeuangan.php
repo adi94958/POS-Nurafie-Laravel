@@ -97,19 +97,19 @@ class ArusKeuangan extends Model
         $query = static::query()
             ->where('id_pemilik', $idPemilik);
 
-        if ($from) {
-            $query->whereDate('created_at', '>=', $from);
-        }
+        // if ($from) {
+        //     $query->whereDate('created_at', '>=', $from);
+        // }
 
-        if ($until) {
-            $query->whereDate('created_at', '<=', $until);
-        }
+        // if ($until) {
+        //     $query->whereDate('created_at', '<=', $until);
+        // }
 
-        if ($jenisPembayaran && $jenisPembayaran !== 'Semua') {
-            $query->whereHas('pembayaran', function ($q) use ($jenisPembayaran) {
-                $q->where('jenis_pembayaran', strtolower($jenisPembayaran));
-            });
-        }
+        // if ($jenisPembayaran && $jenisPembayaran !== 'Semua') {
+        //     $query->whereHas('pembayaran', function ($q) use ($jenisPembayaran) {
+        //         $q->where('jenis_pembayaran', strtolower($jenisPembayaran));
+        //     });
+        // }
 
         $totalDebit = (clone $query)->where('jenis_transaksi', 'debit')->sum('nominal');
         $totalKredit = (clone $query)->where('jenis_transaksi', 'kredit')->sum('nominal');

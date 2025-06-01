@@ -16,7 +16,6 @@ class ListRiwayatPenjualans extends ListRecords
     protected static string $resource = RiwayatPenjualanResource::class;
     protected static ?string $title = 'Daftar Transaksi Penjualan';
 
-
     protected function getHeaderWidgets(): array
     {
         return [
@@ -26,9 +25,7 @@ class ListRiwayatPenjualans extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            // Actions\CreateAction::make(),
-        ];
+        return [];
     }
 
     public function getTabs(): array

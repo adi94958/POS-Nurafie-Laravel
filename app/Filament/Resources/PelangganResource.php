@@ -94,6 +94,9 @@ class PelangganResource extends Resource
                 TextColumn::make('no_telp')
                     ->label('Nomor Telepon')
                     ->searchable()
+                    ->formatStateUsing(function ($state) {
+                        return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                    })
                     ->sortable(),
 
                 TextColumn::make('alamat')
@@ -125,7 +128,10 @@ class PelangganResource extends Resource
                                         TextEntry::make('nama_pelanggan')
                                             ->label('Nama Pelanggan'),
                                         TextEntry::make('no_telp')
-                                            ->label('Nomor Telepon'),
+                                            ->label('Nomor Telepon')
+                                            ->formatStateUsing(function ($state) {
+                                                return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                                            }),
                                     ]),
                                     Group::make([
                                         TextEntry::make('alamat')

@@ -2,114 +2,78 @@
 
 namespace App\Filament\Resources\ArusKeuanganResource\Widgets;
 
-use App\Models\ArusKeuangan;
 use Carbon\Carbon;
-use Filament\Facades\Filament;
+use App\Filament\Resources\ArusKeuanganResource\Pages\ListArusKeuangans;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Livewire\Attributes\On;
 
 class ArusKeuanganOverview extends BaseWidget
 {
-    protected static ?string $pollingInterval = null;
+    use InteractsWithPageTable;
 
-    public ?string $dateFrom = null;
-    public ?string $dateUntil = null;
-    public ?string $activeTab = null;
+    protected function getTablePage(): string
+    {
+        return ListArusKeuangans::class;
+    }
 
     protected function getStats(): array
     {
-        $idPemilik = Filament::auth()->user()?->pemilik?->id_pemilik;
+        $query = $this->getPageTableQuery();
 
-        $data = ArusKeuangan::getSaldoStat(
-            idPemilik: $idPemilik,
-            from: $this->dateFrom,
-            until: $this->dateUntil,
-            jenisPembayaran: $this->activeTab
-        );
+        $kredit = $query->get()->sum(fn($item) => (int) $item->nominal_kredit);
+        $debit = $query->get()->sum(fn($item) => (int) $item->nominal_debit);
+        $omzet = $debit - $kredit;
 
-        $periodDescription = $this->getPeriodDescription();
-        $tabDescription = $this->getTabDescription();
+        $createdFrom = $this->tableFilters['created_at']['created_from'] ?? null;
+        $createdUntil = $this->tableFilters['created_at']['created_until'] ?? null;
+
+        $description = $this->getPeriodDescriptionFromDates($createdFrom, $createdUntil);
 
         return [
-            Stat::make('Total Saldo', $this->formatCurrency($data['saldo']))
-                ->description('Selisih Debit & Kredit' . ($periodDescription ? " ({$periodDescription})" : '') . ($tabDescription ? " - {$tabDescription}" : ''))
-                ->color($data['saldo'] >= 0 ? 'success' : 'danger')
+            Stat::make('Total Saldo', $this->formatCurrency($omzet))
+                ->description($description)
+                ->color($omzet >= 0 ? 'success' : 'danger')
                 ->icon('heroicon-o-currency-dollar'),
 
-            Stat::make('Total Pemasukan (Debit)', $this->formatCurrency($data['total_debit']))
-                ->description(($periodDescription ?: 'Semua waktu') . ($tabDescription ? " - {$tabDescription}" : ''))
+            Stat::make('Total Pemasukan (Debit)', $this->formatCurrency($debit))
+                ->description($description)
                 ->color('primary')
                 ->icon('heroicon-o-arrow-trending-up'),
 
-            Stat::make('Total Pengeluaran (Kredit)', $this->formatCurrency($data['total_kredit']))
-                ->description(($periodDescription ?: 'Semua waktu') . ($tabDescription ? " - {$tabDescription}" : ''))
+            Stat::make('Total Pengeluaran (Kredit)', $this->formatCurrency($kredit))
+                ->description($description)
                 ->color('danger')
                 ->icon('heroicon-o-arrow-trending-down'),
         ];
     }
 
-    #[On('filterChanged')]
-    public function updateFilters(array $filters = []): void
+    private function getPeriodDescriptionFromDates(?string $from, ?string $to): string
     {
-        $this->dateFrom = $filters['created_from'] ?? null;
-        $this->dateUntil = $filters['created_until'] ?? null;
-
-        $this->dispatch('$refresh');
-    }
-
-    #[On('tabChanged')]
-    public function updateActiveTab(string $tab): void
-    {
-        $this->activeTab = $tab;
-        $this->dispatch('$refresh');
-    }
-
-    #[On('filterReset')]
-    public function handleFilterReset(array $filters = [], string $activeTab = 'Semua'): void
-    {
-        $this->dateFrom = $filters['created_from'] ?? null;
-        $this->dateUntil = $filters['created_until'] ?? null;
-        $this->activeTab = $activeTab;
-
-        $this->dispatch('$refresh');
-    }
-
-    public function resetFilters(): void
-    {
-        $this->dateFrom = null;
-        $this->dateUntil = null;
-    }
-
-    protected function getPeriodDescription(): ?string
-    {
-        if ($this->dateFrom && $this->dateUntil) {
-            return Carbon::parse($this->dateFrom)->translatedFormat('d M Y') . ' - ' .
-                Carbon::parse($this->dateUntil)->translatedFormat('d M Y');
+        if (!$from && !$to) {
+            return 'All Time';
         }
 
-        if ($this->dateFrom) {
-            return 'Sejak ' . Carbon::parse($this->dateFrom)->translatedFormat('d M Y');
+        $fromText = $from ? Carbon::parse($from)->translatedFormat('d M Y') : null;
+        $toText = $to ? Carbon::parse($to)->translatedFormat('d M Y') : null;
+
+        if ($fromText && $toText) {
+            return "{$fromText} - {$toText}";
         }
 
-        if ($this->dateUntil) {
-            return 'Sampai ' . Carbon::parse($this->dateUntil)->translatedFormat('d M Y');
+        if ($fromText) {
+            return "Sejak {$fromText}";
         }
 
-        return null;
+        if ($toText) {
+            return "Sampai {$toText}";
+        }
+
+        return '';
     }
 
     private function formatCurrency(int $amount): string
     {
         return 'Rp. ' . number_format($amount, 0, ',', '.');
-    }
-
-    protected function getTabDescription(): ?string
-    {
-        if (!$this->activeTab || $this->activeTab === 'Semua') {
-            return null;
-        }
-
-        return "Pembayaran {$this->activeTab}";
     }
 }

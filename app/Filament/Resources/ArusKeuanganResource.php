@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ArusKeuanganResource\Pages;
+use App\Filament\Resources\ArusKeuanganResource\Widgets\ArusKeuanganOverview;
 use App\Models\ArusKeuangan;
 use Filament\Forms\Form;
 use Filament\Pages\SubNavigationPosition;
@@ -122,19 +123,19 @@ class ArusKeuanganResource extends Resource
                 TextColumn::make('nominal_debit')
                     ->label('Debit')
                     ->formatStateUsing(fn($state) => is_numeric($state)
-                        ? 'Rp. ' . number_format((int) $state, 0, ',', '.')
+                        ? 'Rp. ' . number_format($state, 0, ',', '.')
                         : '-'),
 
                 TextColumn::make('nominal_kredit')
                     ->label('Kredit')
                     ->formatStateUsing(fn($state) => is_numeric($state)
-                        ? 'Rp. ' . number_format((int) $state, 0, ',', '.')
+                        ? 'Rp. ' . number_format($state, 0, ',', '.')
                         : '-'),
 
                 TextColumn::make('saldo')
                     ->label('Saldo')
                     ->formatStateUsing(fn($state) => is_numeric($state)
-                        ? 'Rp. ' . number_format((int) $state, 0, ',', '.')
+                        ? 'Rp. ' . number_format($state, 0, ',', '.')
                         : '-')
                     ->state(function ($record, $livewire) {
                         $activeTab = $livewire->getActiveTab() ?? 'Semua';
@@ -189,6 +190,13 @@ class ArusKeuanganResource extends Resource
     {
         return [
             //
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            ArusKeuanganOverview::class,
         ];
     }
 

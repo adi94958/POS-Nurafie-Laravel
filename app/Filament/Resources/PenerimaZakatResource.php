@@ -115,7 +115,10 @@ class PenerimaZakatResource extends Resource
                 TextColumn::make('no_telp')
                     ->label('Nomor Telepon')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                    }),
 
                 TextColumn::make('alamat')
                     ->label('Alamat')
@@ -146,9 +149,15 @@ class PenerimaZakatResource extends Resource
                                         TextEntry::make('nama_penerima')
                                             ->label('Nama Penerima Zakat'),
                                         TextEntry::make('no_telp')
-                                            ->label('Nomor Telepon'),
+                                            ->label('Nomor Telepon')
+                                            ->formatStateUsing(function ($state) {
+                                                return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                                            }),
                                         TextEntry::make('no_rekening')
-                                            ->label('Nomor Rekening'),
+                                            ->label('Nomor Rekening')
+                                            ->formatStateUsing(function ($state) {
+                                                return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                                            }),
                                         TextEntry::make('rekening_atas_nama')
                                             ->label('Nama Pemilik Rekening'),
                                     ]),

@@ -122,8 +122,21 @@ class CreatePembayaranZakat extends Page
                     }
 
                     return trim(chunk_split(preg_replace('/\s+/', '', $noRek), 4, ' '));
-                })
-                ->columnSpanFull(),
+                }),
+
+            Components\Placeholder::make('bank_display')
+                ->label('Nama Bank Penerima Zakat')
+                ->visible(fn($get) => $get('jenis_pembayaran') === 'transfer')
+                ->content(function (callable $get) {
+                    $idPenerima = $get('id_penerima_zakat');
+                    $namaBank = \App\Models\PenerimaZakat::find($idPenerima)?->nama_bank;
+
+                    if (!$namaBank) {
+                        return '-';
+                    }
+
+                    return $namaBank;
+                }),
 
 
             Components\Select::make('id_penerima_zakat')

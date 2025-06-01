@@ -132,7 +132,10 @@ class KasirResource extends Resource
                 TextColumn::make('no_telp')
                     ->label('Nomor Telepon')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -172,6 +175,9 @@ class KasirResource extends Resource
                                             ->label('Email'),
                                         TextEntry::make('no_telp')
                                             ->label('Nomor Telepon')
+                                            ->formatStateUsing(function ($state) {
+                                                return trim(chunk_split(preg_replace('/\s+/', '', $state), 4, ' '));
+                                            }),
                                     ]),
                                     Group::make([
                                         TextEntry::make('alamat')
