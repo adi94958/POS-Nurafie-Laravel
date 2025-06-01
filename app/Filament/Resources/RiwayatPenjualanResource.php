@@ -109,8 +109,8 @@ class RiwayatPenjualanResource extends Resource
                         ExportFormat::Xlsx,
                     ])
                     ->fileName(function (Export $export): string {
-                        $date = now()->format('Ymd');
-                        return "LaporanPenjualan-{$date}.csv";
+                        $date = now()->format('YmdHis');
+                        return "LaporanPenjualan-{$date}";
                     })
             ])
             ->defaultSort('created_at', 'desc')

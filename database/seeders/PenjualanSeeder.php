@@ -177,7 +177,7 @@ class PenjualanSeeder extends Seeder
                     'updated_at' => $tanggal,
                 ]);
 
-                Pembayaran::create([
+                $pembayaran = Pembayaran::create([
                     'total_bayar' => $total,
                     'keterangan' => 'Lunas',
                     'id_tipe_transfer' => null,
@@ -185,9 +185,6 @@ class PenjualanSeeder extends Seeder
                     'created_at' => $tanggal,
                     'updated_at' => $tanggal,
                 ]);
-
-                // Jika kamu ingin menghubungkan pembayaran dengan penjualan:
-                $pembayaran = Pembayaran::latest()->first();
 
                 PembayaranPenjualan::create([
                     'id_penjualan' => $idPenjualan,

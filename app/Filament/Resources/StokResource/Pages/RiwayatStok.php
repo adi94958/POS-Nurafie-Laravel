@@ -12,6 +12,7 @@ use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
 
 class RiwayatStok extends ManageRelatedRecords
 {
@@ -44,11 +45,12 @@ class RiwayatStok extends ManageRelatedRecords
                         ExportFormat::Xlsx,
                     ])
                     ->fileName(function (Export $export): string {
-                        $date = now()->format('Ymd');
-                        $produk = $this->record->produk;
+                        $date = now()->format('YmdHis');
+                        $produk = $this->record;
 
                         $namaProduk = ucwords(str($produk->nama_produk ?? 'produk')->slug(' '));
-                        return "Laporan Stok Produk {$namaProduk}-{$date}.csv";
+                        Log::info("Exporting stok detail for produk: {$produk} at {$date}");
+                        return "Laporan Stok Produk {$namaProduk}-{$date}";
                     })
             ])
             ->columns([

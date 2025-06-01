@@ -103,7 +103,7 @@ class PembelianResource extends Resource
                     ->formats([
                         ExportFormat::Xlsx,
                     ])
-                    ->fileName(fn() => "Laporan Pembelian-" . now()->format('Ymd') . ".csv")
+                    ->fileName(fn() => "Laporan Pembelian-" . now()->format('YmdHis'))
             ])
             ->defaultSort('pembelian.created_at', 'desc')
             ->columns([

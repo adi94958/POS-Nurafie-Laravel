@@ -104,7 +104,7 @@ class StokResource extends Resource
                         ExportFormat::Xlsx,
                     ])
                     ->fileName(function (Export $export): string {
-                        $date = now()->format('Ymd');
+                        $date = now()->format('YmdHis');
                         return "Laporan Stok Produk Tersedia-{$date}";
                     })
             ])
