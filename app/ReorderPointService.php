@@ -141,7 +141,9 @@ class ReorderPointService
             $lastMonth = Carbon::now()->subMonth()->setTimezone('Asia/Jakarta');
             
             // Cek musiman (Ramadhan/Dzulhijjah)
+            // $isLas
             $isMusiman = $this->isMusiman($now) || $this->isMusiman($lastDayThisWeek);
+            $lastMonthIsMusiman = $this->isMusiman($lastMonth);
             $updated = [];
             
             // Proses tiap produk
@@ -167,7 +169,12 @@ class ReorderPointService
                     $lastPeriodSales = 0;
                     $daysInPeriod = $lastMonth->daysInMonth;
                     
-                    if ($isMusiman) {
+                    if ($lastMonthIsMusiman && !$isMusiman) {
+                        $twoMonthsAgo = Carbon::now()->subMonths(2)->setTimezone('Asia/Jakarta');
+                        $lastPeriodSales = $salesData[$twoMonthsAgo->format('Y-m')] ?? 0;
+                        $daysInPeriod = $twoMonthsAgo->daysInMonth;
+                    } 
+                    else if ($isMusiman) {
                         try {
                             // Deteksi bulan hijriah dan ambil penjualan tahun lalu bulan yang sama
                             $arabic = new Arabic();
@@ -194,16 +201,16 @@ class ReorderPointService
                         $daysInPeriod = $lastMonth->daysInMonth;
                     }
                     
-                    // Jika tidak ada penjualan periode terakhir, skip perhitungan ROP
-                    if ($lastPeriodSales < 1) {
-                        $updated[] = [
-                            'id_produk' => $produk->id_produk,
-                            'nama_produk' => $produk->nama_produk ?? '-',
-                            'note' => 'Penjualan periode sebelumnya 0, tidak ada perhitungan ROP',
-                            'stok_minimum' => $produk->stok_minimum
-                        ];
-                        continue;
-                    }
+                    // // Jika tidak ada penjualan periode terakhir, skip perhitungan ROP
+                    // if ($lastPeriodSales < 1) {
+                    //     $updated[] = [
+                    //         'id_produk' => $produk->id_produk,
+                    //         'nama_produk' => $produk->nama_produk ?? '-',
+                    //         'note' => 'Penjualan periode sebelumnya 0, tidak ada perhitungan ROP',
+                    //         'stok_minimum' => $produk->stok_minimum
+                    //     ];
+                    //     continue;
+                    // }
                     
                     // Hitung ROP
                     $dailyDemand = $lastPeriodSales / max(1, $daysInPeriod);
@@ -220,11 +227,10 @@ class ReorderPointService
                         'nama_produk' => $produk->nama_produk ?? '-',
                         'max' => $max,
                         'lastPeriodSales' => $lastPeriodSales,
-                        'dailyDemand' => "$lastPeriodSales / $daysInPeriod",
-                        'avg' => $dailyDemand,
+                        'dailyDemand' => "$lastPeriodSales / $daysInPeriod = $dailyDemand",
+                        'avg per month' => array_sum($values) . " / " . count($values) . " = $avg",
                         'safety stock' => "($max - $avg) * $leadTime = $safetyStock",
                         'ROP' => "($dailyDemand * $leadTime) + $safetyStock = $reorderPoint",
-                        'isMusiman' => $isMusiman,
                     ];
                     
                 } catch (Exception $e) {
@@ -235,6 +241,9 @@ class ReorderPointService
             return [
                 'success' => true,
                 'isMusiman' => $isMusiman,
+                'lastMonthIsMusiman' => $lastMonthIsMusiman,
+                'last_month' => $lastMonth->format('Y-m-d'),
+                'this_month' => $now->format('Y-m-d'),
                 'data' => $updated,
             ];
             
